@@ -15,6 +15,12 @@ MACOS = sys.platform == "darwin"
 SUPPORTED_PLATFORM = WINDOWS or MACOS
 
 ASSISTANTS: dict[str, dict[str, str]] = {
+    "opencode": {
+        "key": "opencode",
+        "label": "OpenCode",
+        "command": "opencode",
+        "package": "opencode-ai",
+    },
     "codex": {
         "key": "codex",
         "label": "OpenAI Codex",
@@ -139,9 +145,9 @@ def _assistant_status(key: str) -> dict[str, str | bool | None]:
 
 
 def detect() -> dict:
-    assistants = [_assistant_status(key) for key in ("codex", "claude")]
+    assistants = [_assistant_status(key) for key in ("opencode", "codex", "claude")]
     installed = [item for item in assistants if item["installed"]]
-    preferred = "codex" if any(item["key"] == "codex" for item in installed) else None
+    preferred = "opencode" if any(item["key"] == "opencode" for item in installed) else None
     if not preferred and installed:
         preferred = installed[0]["key"]
     return {
@@ -163,7 +169,7 @@ def _ensure_node() -> dict[str, str | bool]:
         if not winget:
             return {
                 "ok": False,
-                "message": "Node.js is required to install Codex, but winget is not available. Install Node.js LTS, then re-run setup.",
+                "message": "Node.js is required to install the assistant, but winget is not available. Install Node.js LTS, then re-run setup.",
             }
         try:
             _run(
@@ -187,7 +193,7 @@ def _ensure_node() -> dict[str, str | bool]:
         if not brew:
             return {
                 "ok": False,
-                "message": "Node.js is required to install Codex, but Homebrew is not available. Install Homebrew or Node.js, then re-run setup.",
+                "message": "Node.js is required to install the assistant, but Homebrew is not available. Install Homebrew or Node.js, then re-run setup.",
             }
         try:
             _run([brew, "install", "node"], timeout=1800)
@@ -237,7 +243,7 @@ def install_default() -> dict:
             "status": detect(),
         }
 
-    target = ASSISTANTS["codex"]
+    target = ASSISTANTS["opencode"]
     try:
         _run([npm, "install", "-g", target["package"]], timeout=1800)
     except subprocess.CalledProcessError as exc:
@@ -256,18 +262,18 @@ def install_default() -> dict:
 
     status = detect()
     installed = next(
-        (item for item in status["assistants"] if item["key"] == "codex"), None
+        (item for item in status["assistants"] if item["key"] == target["key"]), None
     )
     if installed and installed["installed"]:
         return {
             "ok": True,
-            "message": "Installed OpenAI Codex for this machine.",
+            "message": f"Installed {target['label']} for this machine.",
             "installed": installed,
             "status": status,
         }
     return {
         "ok": False,
-        "message": "Codex installation finished, but the command is still not available. Open a new terminal and re-run setup.",
+        "message": f"{target['label']} installation finished, but the command is still not available. Open a new terminal and re-run setup.",
         "status": status,
     }
 
